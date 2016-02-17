@@ -69,6 +69,44 @@ fn b64_more_data() {
         "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t");
 }
 
+/// An iterator adapter that consumes an iterator of hex digits and
+/// produces a stream of bytes.
+struct HexToBytes<T: Iterator<Item = char>> {
+    source: T
+}
+
+impl<T: Iterator<Item = char>> Iterator for HexToBytes<T> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<u8> {
+        fn hex_digit(c: char) -> Option<u8> {
+            c.to_digit(16).map(|c| c as u8)
+        }
+        self.source.next()
+            .and_then(hex_digit)
+            .and_then(|h| self.source.next().and_then(hex_digit)
+                 .map(|l| h * 16 + l))
+    }
+}
+
+#[test]
+fn hex_to_bytes() {
+    let mut i = HexToBytes { source: "deadbeef".chars() };
+    assert_eq!(0xde, i.next().unwrap());
+    assert_eq!(0xad, i.next().unwrap());
+    assert_eq!(0xbe, i.next().unwrap());
+    assert_eq!(0xef, i.next().unwrap());
+    assert_eq!(None, i.next());
+}
+
+#[test]
+fn hex_truncated_byte() {
+    let mut i = HexToBytes { source: "c0ffe".chars() };
+    assert_eq!(0xc0, i.next().unwrap());
+    assert_eq!(0xff, i.next().unwrap());
+    assert_eq!(None, i.next());
+}
+
 fn main() {
     println!("Hello, world!");
 }
