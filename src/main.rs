@@ -40,6 +40,60 @@ fn b64encode(data: &[u8]) -> String {
     result
 }
 
+/// Iterator adapter version of b64encode
+struct Base64<T: Iterator<Item=u8>> {
+    source: T,
+
+    // It's obnoxious to have to keep continuation state in a struct.
+    // It would be nice if Rust had continuations or generators.
+    bits: u16,
+    n: usize,
+    count: usize,
+}
+
+impl<T: Iterator<Item=u8>> Base64<T> {
+    fn new(source: T) -> Base64<T> {
+        Base64 {
+            source: source,
+            bits: 0,
+            n: 0,
+            count: 0,
+        }
+    }
+}
+
+impl<T: Iterator<Item=u8>> Iterator for Base64<T> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<char> {
+        const CODES: &'static str =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        // Try to consume from source if there are fewer than 6 bits available
+        if self.n < 6 {
+            match self.source.next() {
+                Some(byte) => {
+                    self.bits &= !(0xffff >> self.n); // preserve high n bits
+                    self.bits |= (byte as u16) << (8 - self.n);
+                    self.n += 8;
+                },
+                None => {
+                    if self.n < 1 && (self.count % 4) != 0 {
+                        return Some('=');
+                    } else {
+                        return None;
+                    }
+                }
+            }
+        }
+
+        // Otherwise, consume 6 available bits
+        self.n -= 6;
+        self.bits = self.bits.rotate_left(6);
+        return Some(CODES.as_bytes()[(self.bits & 0x3f) as usize] as char);
+    }
+}
+
 #[test]
 fn b64_empty() {
     assert_eq!(b64encode(&[]), "");
