@@ -1,60 +1,23 @@
 // Crypto, woo!
-
-/// Return the base64 encoding of a byte slice.
-fn b64encode(data: &[u8]) -> String {
-    const CODES: &'static str =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    let mut data = data.iter().peekable();
-    let mut result = String::new();
-
-    let mut accumulator: u16 = 0;   // Bit storage
-    let mut n = 0;                  // Number of accumulated bits
-
-    loop {
-        // Consume another byte if we have fewer than 6 bits available
-        if n < 6 {
-            match data.next() {
-                Some(byte) => {
-                    accumulator &= !(0xffff >> n); // preserve only high n bits
-                    accumulator |= (*byte as u16) << (8 - n);
-                    n += 8;
-                },
-                None => if n < 1 {
-                    break;
-                }
-            }
-        }
-
-        // Yoink six bits from the accumulator and emit a base64 codepoint
-        n -= 6;
-        accumulator = accumulator.rotate_left(6);
-        result.push(CODES.as_bytes()[(accumulator & 0x3f) as usize] as char);
-    }
-
-    // Add padding
-    while result.len() % 4 != 0 {
-        result.push('=');
-    }
-
-    result
-}
+use std::marker::PhantomData;
 
 /// Iterator adapter version of b64encode
-struct Base64<T: Iterator<Item=u8>> {
+struct Base64<'a, T: Iterator<Item=&'a u8>> {
     source: T,
+    _ghost: PhantomData<&'a u32>,
 
     // It's obnoxious to have to keep continuation state in a struct.
     // It would be nice if Rust had continuations or generators.
     bits: u16,
-    n: usize,
+    n: i8,
     count: usize,
 }
 
-impl<T: Iterator<Item=u8>> Base64<T> {
-    fn new(source: T) -> Base64<T> {
+impl<'a, T: Iterator<Item=&'a u8>> Base64<'a, T> {
+    fn new(source: T) -> Base64<'a, T> {
         Base64 {
             source: source,
+            _ghost: PhantomData,
             bits: 0,
             n: 0,
             count: 0,
@@ -62,7 +25,7 @@ impl<T: Iterator<Item=u8>> Base64<T> {
     }
 }
 
-impl<T: Iterator<Item=u8>> Iterator for Base64<T> {
+impl<'a, T: Iterator<Item=&'a u8>> Iterator for Base64<'a, T> {
     type Item = char;
 
     fn next(&mut self) -> Option<char> {
@@ -74,14 +37,17 @@ impl<T: Iterator<Item=u8>> Iterator for Base64<T> {
             match self.source.next() {
                 Some(byte) => {
                     self.bits &= !(0xffff >> self.n); // preserve high n bits
-                    self.bits |= (byte as u16) << (8 - self.n);
+                    self.bits |= (*byte as u16) << (8 - self.n);
                     self.n += 8;
                 },
                 None => {
-                    if self.n < 1 && (self.count % 4) != 0 {
-                        return Some('=');
-                    } else {
-                        return None;
+                    if self.n < 1 {
+                        if (self.count % 4) != 0 {
+                            self.count += 1;
+                            return Some('=');
+                        } else {
+                            return None;
+                        }
                     }
                 }
             }
@@ -90,8 +56,14 @@ impl<T: Iterator<Item=u8>> Iterator for Base64<T> {
         // Otherwise, consume 6 available bits
         self.n -= 6;
         self.bits = self.bits.rotate_left(6);
+        self.count += 1;
         return Some(CODES.as_bytes()[(self.bits & 0x3f) as usize] as char);
     }
+}
+
+/// Return the base64 encoding of a byte slice.
+fn b64encode(data: &[u8]) -> String {
+    Base64::new(data.iter()).collect()
 }
 
 #[test]
