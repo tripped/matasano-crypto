@@ -2,7 +2,7 @@
 use std::marker::PhantomData;
 
 /// Iterator adapter version of b64encode
-struct Base64<'a, T: Iterator<Item=&'a u8>> {
+struct Base64<'a, T> {
     source: T,
     _ghost: PhantomData<&'a u32>,
 
@@ -13,7 +13,7 @@ struct Base64<'a, T: Iterator<Item=&'a u8>> {
     count: usize,
 }
 
-impl<'a, T: Iterator<Item=&'a u8>> Base64<'a, T> {
+impl<'a, T> Base64<'a, T> {
     fn new(source: T) -> Base64<'a, T> {
         Base64 {
             source: source,
