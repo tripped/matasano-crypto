@@ -1,10 +1,8 @@
 // Crypto, woo!
-use std::marker::PhantomData;
 
 /// Iterator adapter version of b64encode
-struct Base64<'a, T> {
-    source: T,
-    _ghost: PhantomData<&'a u32>,
+struct Base64<I> {
+    source: I,
 
     // It's obnoxious to have to keep continuation state in a struct.
     // It would be nice if Rust had continuations or generators.
@@ -13,11 +11,10 @@ struct Base64<'a, T> {
     count: usize,
 }
 
-impl<'a, T> Base64<'a, T> {
-    fn new(source: T) -> Base64<'a, T> {
+impl<I> Base64<I> {
+    fn new(source: I) -> Base64<I> {
         Base64 {
             source: source,
-            _ghost: PhantomData,
             bits: 0,
             n: 0,
             count: 0,
@@ -25,10 +22,10 @@ impl<'a, T> Base64<'a, T> {
     }
 }
 
-impl<'a, T: Iterator<Item=&'a u8>> Iterator for Base64<'a, T> {
+impl<I> Iterator for Base64<I> where I: Iterator<Item=u8> {
     type Item = char;
 
-    fn next(&mut self) -> Option<char> {
+    fn next(&mut self) -> Option<Self::Item> {
         const CODES: &'static str =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -37,7 +34,7 @@ impl<'a, T: Iterator<Item=&'a u8>> Iterator for Base64<'a, T> {
             match self.source.next() {
                 Some(byte) => {
                     self.bits &= !(0xffff >> self.n); // preserve high n bits
-                    self.bits |= (*byte as u16) << (8 - self.n);
+                    self.bits |= (byte as u16) << (8 - self.n);
                     self.n += 8;
                 },
                 None => {
@@ -63,7 +60,7 @@ impl<'a, T: Iterator<Item=&'a u8>> Iterator for Base64<'a, T> {
 
 /// Return the base64 encoding of a byte slice.
 fn b64encode(data: &[u8]) -> String {
-    Base64::new(data.iter()).collect()
+    Base64::new(data.iter().cloned()).collect()
 }
 
 #[test]
