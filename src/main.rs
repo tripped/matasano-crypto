@@ -94,14 +94,14 @@ fn b64_more_data() {
 
 /// An iterator adapter that consumes an iterator of hex digits and
 /// produces a stream of bytes.
-struct HexToBytes<T: Iterator<Item = char>> {
-    source: T
+struct HexToBytes<I> {
+    source: I
 }
 
-impl<T: Iterator<Item = char>> Iterator for HexToBytes<T> {
+impl<I> Iterator for HexToBytes<I> where I: Iterator<Item=char> {
     type Item = u8;
 
-    fn next(&mut self) -> Option<u8> {
+    fn next(&mut self) -> Option<Self::Item> {
         fn hex_digit(c: char) -> Option<u8> {
             c.to_digit(16).map(|c| c as u8)
         }
