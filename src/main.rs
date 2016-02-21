@@ -58,9 +58,20 @@ impl<I> Iterator for Base64<I> where I: Iterator<Item=u8> {
     }
 }
 
+trait Base64Ext: Sized {
+    fn base64(self) -> Base64<Self>;
+}
+
+impl<I> Base64Ext for I where I: Iterator<Item=u8> {
+    fn base64(self) -> Base64<Self> {
+        Base64::new(self)
+    }
+}
+
+
 /// Return the base64 encoding of a byte slice.
 fn b64encode(data: &[u8]) -> String {
-    Base64::new(data.iter().cloned()).collect()
+    data.iter().cloned().base64().collect()
 }
 
 #[test]
@@ -112,6 +123,16 @@ impl<I> Iterator for HexToBytes<I> where I: Iterator<Item=char> {
     }
 }
 
+trait HexToBytesExt: Sized {
+    fn hexbytes(self) -> HexToBytes<Self>;
+}
+
+impl<I> HexToBytesExt for I where I: Iterator<Item=char> {
+    fn hexbytes(self) -> HexToBytes<Self> {
+        HexToBytes { source: self }
+    }
+}
+
 #[test]
 fn hex_to_bytes() {
     let mut i = HexToBytes { source: "deadbeef".chars() };
@@ -131,7 +152,7 @@ fn hex_truncated_byte() {
 }
 
 fn hex_to_base64(s: &str) -> String {
-    Base64::new(HexToBytes{source: s.chars()}).collect()
+    s.chars().hexbytes().base64().collect()
 }
 
 #[test]
