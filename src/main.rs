@@ -130,6 +130,19 @@ fn hex_truncated_byte() {
     assert_eq!(None, i.next());
 }
 
+fn hex_to_base64(s: &str) -> String {
+    Base64::new(HexToBytes{source: s.chars()}).collect()
+}
+
+#[test]
+fn hex_to_base64_works() {
+    let hex = "49276d206b696c6c696e6720796f757220627261696e206c\
+               696b65206120706f69736f6e6f7573206d757368726f6f6d";
+    let expected = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9\
+                    pc29ub3VzIG11c2hyb29t";
+    assert_eq!(hex_to_base64(hex), expected);
+}
+
 fn main() {
     println!("Hello, world!");
 }
