@@ -1,4 +1,5 @@
 // Crypto, woo!
+use std::char;
 
 /// Iterator adapter version of b64encode
 struct Base64<I> {
@@ -165,7 +166,17 @@ fn hex_to_base64_works() {
 }
 
 fn xor(a: &str, b: &str) -> String {
-    String::new()
+    let mut result = String::new();
+    let a = a.chars().hexbytes();
+    let b = b.chars().hexbytes();
+    for (x, y) in a.zip(b) {
+        let d = x ^ y;
+        let h = (d / 16) as u32;
+        let l = (d % 16) as u32;
+        result.push(char::from_digit(h, 16).unwrap());
+        result.push(char::from_digit(l, 16).unwrap());
+    }
+    result
 }
 
 #[test]
