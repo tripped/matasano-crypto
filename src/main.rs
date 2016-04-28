@@ -186,6 +186,52 @@ fn xor_works() {
     assert_eq!(xor(a, b), "746865206b696420646f6e277420706c6179");
 }
 
+/// The xor iterator of two u8 iterators
+struct Xor<I> {
+    a: I,
+    b: I,
+}
+
+impl<I> Xor<I> {
+    fn new(a: I, b: I) -> Xor<I> {
+        Xor { a: a, b: b }
+    }
+}
+
+impl<I> Iterator for Xor<I> where I: Iterator<Item=u8> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.a.next(), self.b.next()) {
+            (Some(a), Some(b)) => Some(a ^ b),
+            (None, _) | (_, None) => None,
+        }
+    }
+}
+
+trait XorExt<I>: Sized {
+    fn xor(self, other: I) -> Xor<I>;
+}
+
+impl<I> XorExt<I> for I where I: Iterator<Item=u8> {
+    fn xor(self, other: I) -> Xor<I> {
+        Xor::new(self, other)
+    }
+}
+
+#[test]
+fn xor_iterator_works() {
+    let a = [0, 1, 0, 1, 7];
+    let b = [0, 0, 1, 1, 5];
+
+    let a = a.iter().cloned();
+    let b = b.iter().cloned();
+
+    let result: Vec<u8> = a.xor(b).collect();
+
+    assert_eq!(result, vec![0, 1, 1, 0, 2]);
+}
+
 fn main() {
     println!("Hello, world!");
 }
