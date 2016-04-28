@@ -1,5 +1,7 @@
 // Crypto, woo!
+extern crate itertools;
 use std::char;
+use std::iter::repeat;
 
 /// Iterator adapter version of b64encode
 struct Base64<I> {
@@ -187,18 +189,19 @@ fn xor_works() {
 }
 
 /// The xor iterator of two u8 iterators
-struct Xor<I> {
-    a: I,
-    b: I,
+struct Xor<X, Y> {
+    a: X,
+    b: Y,
 }
 
-impl<I> Xor<I> {
-    fn new(a: I, b: I) -> Xor<I> {
+impl<X, Y> Xor<X, Y> {
+    fn new(a: X, b: Y) -> Xor<X, Y> {
         Xor { a: a, b: b }
     }
 }
 
-impl<I> Iterator for Xor<I> where I: Iterator<Item=u8> {
+impl<X, Y> Iterator for Xor<X, Y> where X: Iterator<Item=u8>,
+                                        Y: Iterator<Item=u8>, {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -209,12 +212,12 @@ impl<I> Iterator for Xor<I> where I: Iterator<Item=u8> {
     }
 }
 
-trait XorExt<I>: Sized {
-    fn xor(self, other: I) -> Xor<I>;
+trait XorExt<X, Y>: Sized {
+    fn xor(self, other: Y) -> Xor<X, Y>;
 }
 
-impl<I> XorExt<I> for I where I: Iterator<Item=u8> {
-    fn xor(self, other: I) -> Xor<I> {
+impl<X, Y> XorExt<X, Y> for X where X: Iterator<Item=u8> {
+    fn xor(self, other: Y) -> Xor<X, Y> {
         Xor::new(self, other)
     }
 }
@@ -230,6 +233,24 @@ fn xor_iterator_works() {
     let result: Vec<u8> = a.xor(b).collect();
 
     assert_eq!(result, vec![0, 1, 1, 0, 2]);
+}
+
+fn decrypt_single_xor(ciphertext: &str) -> String {
+    for i in 0u8..255u8 {
+        let bytes = ciphertext.chars().hexbytes();
+        let key = repeat(i);
+
+        let plain = bytes.xor(key);
+    }
+    String::new()
+}
+
+#[test]
+fn decrypt_single_xor_works() {
+    let cipher = "1b37373331363f78151b7f2b783431333d7\
+                  8397828372d363c78373e783a393b3736";
+
+    // Not a proper test, doesn't even assert anything!
 }
 
 fn main() {
