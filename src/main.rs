@@ -265,17 +265,48 @@ fn bytes_to_chars_works() {
 }
 
 fn decrypt_single_xor(ciphertext: &str) -> String {
+
+    /// Attempt to figure out a text's relative excellence
+    fn score(plaintext: &str) -> i32 {
+        let mut score = 0;
+        for c in plaintext.chars() {
+            // Give rough score according to character frequency. I just
+            // asspulled these numbers, but the idea is to reward lowercase
+            // letters, slightly penalize capital letters and other printable
+            // symbols, extremely penalize nonprintable symbols.
+            match c {
+                ' ' => { score += 1; },
+                '!' ... '/' => { score -= 1; },
+                '0' ... '9' => { score += 0; },
+                ':' ... '@' => { score -= 2; },
+                'A' ... 'Z' => { score -= 1; },
+                '[' ... '`' => { score -= 2; },
+                'a' ... 'z' => { score += 2; },
+                '{' ... '~' => { score -= 1; },
+                _ => { score -= 10; }
+            }
+        }
+        score
+    }
+
+    let mut best = String::new();
+    let mut best_score = i32::min_value();
+
     for i in 0u8..255u8 {
         let bytes = ciphertext.chars().hexbytes();
         let key = repeat(i);
-
         let plain = bytes.xor(key);
-
         let result: String = plain.chars().collect();
+        let score = score(&result);
 
-        println!("Key {} yields {}", i, result);
+        if score >= best_score {
+            best = result;
+            best_score = score;
+        }
     }
-    String::new()
+
+    println!("Best score: {} for \"{}\"", best_score, &best);
+    best
 }
 
 #[test]
@@ -283,8 +314,9 @@ fn decrypt_single_xor_works() {
     let cipher = "1b37373331363f78151b7f2b783431333d7\
                   8397828372d363c78373e783a393b3736";
 
-    // Not a proper test, doesn't even assert anything!
-    decrypt_single_xor(cipher);
+    assert_eq!(
+        decrypt_single_xor(cipher),
+        "Cooking MC's like a pound of bacon");
 }
 
 fn main() {
