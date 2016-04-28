@@ -235,6 +235,35 @@ fn xor_iterator_works() {
     assert_eq!(result, vec![0, 1, 1, 0, 2]);
 }
 
+struct BytesToChars<I> {
+    source: I
+}
+
+impl<I> Iterator for BytesToChars<I> where I: Iterator<Item=u8> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.source.next().and_then(|c| char::from_u32(c as u32))
+    }
+}
+
+trait BytesToCharsExt: Sized {
+    fn chars(self) -> BytesToChars<Self>;
+}
+
+impl<I> BytesToCharsExt for I where I: Iterator<Item=u8> {
+    fn chars(self) -> BytesToChars<Self> {
+        BytesToChars { source: self }
+    }
+}
+
+#[test]
+fn bytes_to_chars_works() {
+    let bytes = [72, 101, 108, 108, 111];
+    let string: String = bytes.iter().cloned().chars().collect();
+    assert_eq!("Hello", string);
+}
+
 fn decrypt_single_xor(ciphertext: &str) -> String {
     for i in 0u8..255u8 {
         let bytes = ciphertext.chars().hexbytes();
