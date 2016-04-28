@@ -270,6 +270,10 @@ fn decrypt_single_xor(ciphertext: &str) -> String {
         let key = repeat(i);
 
         let plain = bytes.xor(key);
+
+        let result: String = plain.chars().collect();
+
+        println!("Key {} yields {}", i, result);
     }
     String::new()
 }
@@ -280,6 +284,7 @@ fn decrypt_single_xor_works() {
                   8397828372d363c78373e783a393b3736";
 
     // Not a proper test, doesn't even assert anything!
+    decrypt_single_xor(cipher);
 }
 
 fn main() {
