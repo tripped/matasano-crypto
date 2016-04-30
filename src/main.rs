@@ -10,41 +10,7 @@ use base64::Base64Ext;
 use hex::HexToBytesExt;
 use xor::XorExt;
 
-/// Set 1, Challenge 1
-fn hex_to_base64(s: &str) -> String {
-    s.chars().hexbytes().base64().collect()
-}
-
-#[test]
-fn hex_to_base64_works() {
-    let hex = "49276d206b696c6c696e6720796f757220627261696e206c\
-               696b65206120706f69736f6e6f7573206d757368726f6f6d";
-    let expected = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9\
-                    pc29ub3VzIG11c2hyb29t";
-    assert_eq!(hex_to_base64(hex), expected);
-}
-
-fn xor(a: &str, b: &str) -> String {
-    let mut result = String::new();
-    let a = a.chars().hexbytes();
-    let b = b.chars().hexbytes();
-    for (x, y) in a.zip(b) {
-        let d = x ^ y;
-        let h = (d / 16) as u32;
-        let l = (d % 16) as u32;
-        result.push(char::from_digit(h, 16).unwrap());
-        result.push(char::from_digit(l, 16).unwrap());
-    }
-    result
-}
-
-#[test]
-fn xor_works() {
-    let a = "1c0111001f010100061a024b53535009181c";
-    let b = "686974207468652062756c6c277320657965";
-    assert_eq!(xor(a, b), "746865206b696420646f6e277420706c6179");
-}
-
+/// A handy utility iterator for converting a sequence of bytes to characters.
 struct BytesToChars<I> {
     source: I
 }
@@ -74,6 +40,47 @@ fn bytes_to_chars_works() {
     assert_eq!("Hello", string);
 }
 
+
+///---------------------------------------------------------------------------
+/// Set 1, Challenge 1
+///---------------------------------------------------------------------------
+fn hex_to_base64(s: &str) -> String {
+    s.chars().hexbytes().base64().collect()
+}
+
+#[test]
+fn hex_to_base64_works() {
+    let hex = "49276d206b696c6c696e6720796f757220627261696e206c\
+               696b65206120706f69736f6e6f7573206d757368726f6f6d";
+    let expected = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9\
+                    pc29ub3VzIG11c2hyb29t";
+    assert_eq!(hex_to_base64(hex), expected);
+}
+
+///---------------------------------------------------------------------------
+/// Set 1, Challenge 2
+///---------------------------------------------------------------------------
+fn xor(a: &str, b: &str) -> String {
+    let mut result = String::new();
+    for b in a.chars().hexbytes().xor(b.chars().hexbytes()) {
+        let h = (b / 16) as u32;
+        let l = (b % 16) as u32;
+        result.push(char::from_digit(h, 16).unwrap());
+        result.push(char::from_digit(l, 16).unwrap());
+    }
+    result
+}
+
+#[test]
+fn xor_works() {
+    let a = "1c0111001f010100061a024b53535009181c";
+    let b = "686974207468652062756c6c277320657965";
+    assert_eq!(xor(a, b), "746865206b696420646f6e277420706c6179");
+}
+
+///---------------------------------------------------------------------------
+/// Set 1, Challenge 3
+///---------------------------------------------------------------------------
 fn decrypt_single_xor(ciphertext: &str) -> String {
 
     /// Attempt to figure out a text's relative excellence
