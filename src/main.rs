@@ -5,7 +5,10 @@ mod base64;
 mod xor;
 
 use std::char;
+use std::fs::File;
+use std::io::{BufReader, BufRead};
 use std::iter::repeat;
+
 use base64::Base64Ext;
 use hex::HexToBytesExt;
 use xor::XorExt;
@@ -81,31 +84,31 @@ fn xor_works() {
 ///---------------------------------------------------------------------------
 /// Set 1, Challenge 3
 ///---------------------------------------------------------------------------
-fn decrypt_single_xor(ciphertext: &str) -> String {
 
-    /// Attempt to figure out a text's relative excellence
-    fn score(plaintext: &str) -> i32 {
-        let mut score = 0;
-        for c in plaintext.chars() {
-            // Give rough score according to character frequency. I just
-            // asspulled these numbers, but the idea is to reward lowercase
-            // letters, slightly penalize capital letters and other printable
-            // symbols, extremely penalize nonprintable symbols.
-            match c {
-                ' ' => { score += 1; },
-                '!' ... '/' => { score -= 1; },
-                '0' ... '9' => { score += 0; },
-                ':' ... '@' => { score -= 2; },
-                'A' ... 'Z' => { score -= 1; },
-                '[' ... '`' => { score -= 2; },
-                'a' ... 'z' => { score += 2; },
-                '{' ... '~' => { score -= 1; },
-                _ => { score -= 10; }
-            }
+/// Attempt to figure out a text's relative excellence
+fn score(plaintext: &str) -> i32 {
+    let mut score = 0;
+    for c in plaintext.chars() {
+        // Give rough score according to character frequency. I just
+        // asspulled these numbers, but the idea is to reward lowercase
+        // letters, slightly penalize capital letters and other printable
+        // symbols, extremely penalize nonprintable symbols.
+        match c {
+            ' ' => { score += 1; },
+            '!' ... '/' => { score -= 1; },
+            '0' ... '9' => { score += 0; },
+            ':' ... '@' => { score -= 2; },
+            'A' ... 'Z' => { score -= 1; },
+            '[' ... '`' => { score -= 2; },
+            'a' ... 'z' => { score += 2; },
+            '{' ... '~' => { score -= 1; },
+            _ => { score -= 10; }
         }
-        score
     }
+    score
+}
 
+fn decrypt_single_xor(ciphertext: &str) -> (i32, String) {
     let mut best = String::new();
     let mut best_score = i32::min_value();
 
@@ -123,7 +126,7 @@ fn decrypt_single_xor(ciphertext: &str) -> String {
     }
 
     println!("Best score: {} for \"{}\"", best_score, &best);
-    best
+    (best_score, best)
 }
 
 #[test]
@@ -131,9 +134,36 @@ fn decrypt_single_xor_works() {
     let cipher = "1b37373331363f78151b7f2b783431333d7\
                   8397828372d363c78373e783a393b3736";
 
-    assert_eq!(
-        decrypt_single_xor(cipher),
-        "Cooking MC's like a pound of bacon");
+    let (_, result) = decrypt_single_xor(cipher);
+    assert_eq!(result, "Cooking MC's like a pound of bacon");
+}
+
+///---------------------------------------------------------------------------
+/// Set 1, Challenge 4
+///---------------------------------------------------------------------------
+fn find_single_char_xor(input_filename: &str)
+        -> std::io::Result<(i32, String)> {
+    let f = try!(File::open(input_filename));
+    let file = BufReader::new(&f);
+
+    let mut best_score = i32::min_value();
+    let mut best = String::new();
+
+    for line in file.lines() {
+        let (score, result) = decrypt_single_xor(&line.unwrap());
+        if score > best_score {
+            best_score = score;
+            best = result;
+        }
+    }
+    Ok((best_score, best))
+}
+
+#[test]
+fn find_single_char_xor_works() {
+    let (score, result) = find_single_char_xor("4.txt").unwrap();
+    println!("Found: {}, {}", score, result);
+    assert_eq!(result, "Now that the party is jumping\n");
 }
 
 fn main() {
