@@ -166,6 +166,57 @@ fn find_single_char_xor_works() {
     assert_eq!(result, "Now that the party is jumping\n");
 }
 
+///---------------------------------------------------------------------------
+/// Set 1, Challenge 5
+///---------------------------------------------------------------------------
+
+/// Consume an iterator of u8, turning it into a string of hex pairs.
+/// XXX: make this an iterator adapter u8->char
+fn bytes_to_hex<I: Iterator<Item=u8>>(iter: I) -> String {
+    itertools::Unfold::new((iter, None), |state| {
+        let (ref mut iter, ref mut leftover) = *state;
+        match *leftover {
+            Some(nybble) => {
+                *leftover = None;
+                char::from_digit(nybble, 16)
+            },
+            None => match iter.next() {
+                Some(byte) => {
+                    let h = (byte / 16) as u32;
+                    let l = (byte % 16) as u32;
+                    *leftover = Some(l);
+                    char::from_digit(h, 16)
+                },
+                None => None
+            }
+        }
+    }).collect()
+}
+
+#[test]
+fn bytes_to_hex_works() {
+    let bytes = [0, 1, 67, 127, 255];
+    assert_eq!(bytes_to_hex(bytes.iter().cloned()), "0001437fff");
+}
+
+fn repeating_key_xor(text: &str, key: &str) -> String {
+    // XXX: assumes ASCII inputs
+    let text = text.chars().map(|c| c as u8);
+    let key = key.chars().cycle().map(|c| c as u8);
+    bytes_to_hex(text.xor(key))
+}
+
+#[test]
+fn repeating_key_xor_works() {
+    let input = "Burning 'em, if you ain't quick and nimble\n\
+                 I go crazy when I hear a cymbal";
+    assert_eq!(
+        repeating_key_xor(input, "ICE"),
+        "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d\
+         63343c2a26226324272765272a282b2f20430a652e2c652a31\
+         24333a653e2b2027630c692b20283165286326302e27282f");
+}
+
 fn main() {
     println!("Hello, world!");
 }
