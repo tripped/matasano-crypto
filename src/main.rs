@@ -201,8 +201,8 @@ fn bytes_to_hex_works() {
 
 fn repeating_key_xor(text: &str, key: &str) -> String {
     // XXX: assumes ASCII inputs
-    let text = text.chars().map(|c| c as u8);
-    let key = key.chars().cycle().map(|c| c as u8);
+    let text = text.bytes();
+    let key = key.bytes().cycle();
     bytes_to_hex(text.xor(key))
 }
 
