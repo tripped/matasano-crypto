@@ -1,4 +1,6 @@
 // Crypto, woo!
+#![feature(iter_arith)]
+
 extern crate itertools;
 mod hex;
 mod base64;
@@ -215,6 +217,32 @@ fn repeating_key_xor_works() {
         "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d\
          63343c2a26226324272765272a282b2f20430a652e2c652a31\
          24333a653e2b2027630c692b20283165286326302e27282f");
+}
+
+///---------------------------------------------------------------------------
+/// Set 1, Challenge 6
+///---------------------------------------------------------------------------
+
+fn hamming_distance(a: &str, b: &str) -> usize {
+    assert_eq!(a.len(), b.len());
+
+    /// Hamming distance between two u8s
+    fn dist((a, b): (u8, u8)) -> usize {
+        let mut x = a ^ b;
+        let mut bits = 0;
+        while x != 0 {
+            bits += 1;
+            x &= x - 1;
+        }
+        bits
+    }
+
+    a.bytes().zip(b.bytes()).map(dist).sum()
+}
+
+#[test]
+fn hamming_distance_works() {
+    assert_eq!(37, hamming_distance("this is a test", "wokka wokka!!!"));
 }
 
 fn main() {
