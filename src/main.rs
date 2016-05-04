@@ -223,9 +223,11 @@ fn repeating_key_xor_works() {
 /// Set 1, Challenge 6
 ///---------------------------------------------------------------------------
 
-fn hamming_distance(a: &str, b: &str) -> usize {
-    assert_eq!(a.len(), b.len());
-
+/// Consume two u8 iterators and return the hamming distance between their
+/// contents.
+fn hamming_distance<A, B>(a: A, b: B) -> usize
+        where A: Iterator<Item=u8>,
+              B: Iterator<Item=u8> {
     /// Hamming distance between two u8s
     fn dist((a, b): (u8, u8)) -> usize {
         let mut x = a ^ b;
@@ -237,12 +239,18 @@ fn hamming_distance(a: &str, b: &str) -> usize {
         bits
     }
 
-    a.bytes().zip(b.bytes()).map(dist).sum()
+    a.zip(b).map(dist).sum()
+}
+
+/// Convenience: compute the hamming distance between two strings.
+fn hamming_distance_str(a: &str, b: &str) -> usize {
+    assert_eq!(a.len(), b.len());
+    hamming_distance(a.bytes(), b.bytes())
 }
 
 #[test]
 fn hamming_distance_works() {
-    assert_eq!(37, hamming_distance("this is a test", "wokka wokka!!!"));
+    assert_eq!(37, hamming_distance_str("this is a test", "wokka wokka!!!"));
 }
 
 fn main() {
