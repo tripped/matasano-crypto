@@ -8,9 +8,8 @@ mod xor;
 
 use std::char;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufReader, BufRead, Read};
 use std::iter::repeat;
-
 use base64::Base64Ext;
 use hex::HexToBytesExt;
 use xor::XorExt;
@@ -251,6 +250,30 @@ fn hamming_distance_str(a: &str, b: &str) -> usize {
 #[test]
 fn hamming_distance_works() {
     assert_eq!(37, hamming_distance_str("this is a test", "wokka wokka!!!"));
+}
+
+
+fn find_key_length(filename: &str) -> std::io::Result<usize> {
+    let f = try!(File::open(filename));
+    let mut file = BufReader::new(&f);
+
+    // XXX: the test file is small, so just read the whole thing into memory.
+    // Ideally we'd use BufReader's bytes() implementation, but that is an
+    // iterator over std::io::Result<u8> and not u8, and adapting is a pain.
+    let mut data = Vec::new();
+    file.read_to_end(&mut data).unwrap();
+
+    Ok((2..42).min_by_key(|keysize| {
+        let mut chunks = data.chunks(*keysize);
+        let first = chunks.nth(0).unwrap().iter().cloned();
+        let second = chunks.nth(1).unwrap().iter().cloned();
+        hamming_distance(first, second) / keysize
+    }).unwrap())
+}
+
+#[test]
+fn find_key_length_works() {
+    assert_eq!(42, find_key_length("6.txt").unwrap());
 }
 
 fn main() {
