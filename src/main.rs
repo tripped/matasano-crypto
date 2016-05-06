@@ -252,8 +252,9 @@ fn hamming_distance_works() {
     assert_eq!(37, hamming_distance_str("this is a test", "wokka wokka!!!"));
 }
 
-
-fn find_key_length(filename: &str) -> std::io::Result<usize> {
+/// Return the five "best" key-length candidates (between 2 and 42) for the
+/// given file.
+fn find_key_lengths(filename: &str) -> std::io::Result<Vec<usize>> {
     let f = try!(File::open(filename));
     let mut file = BufReader::new(&f);
 
@@ -263,17 +264,27 @@ fn find_key_length(filename: &str) -> std::io::Result<usize> {
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
 
-    Ok((2..42).min_by_key(|keysize| {
-        let mut chunks = data.chunks(*keysize);
+    let mut keys: Vec<_> = (2..42).map(|keysize| {
+        let mut chunks = data.chunks(keysize);
         let first = chunks.nth(0).unwrap().iter().cloned();
         let second = chunks.nth(1).unwrap().iter().cloned();
-        hamming_distance(first, second) / keysize
-    }).unwrap())
+        let n = (hamming_distance(first, second) * 1000) / keysize;
+
+        println!("{} -> {}", keysize, n);
+        (keysize, n)
+    }).collect();
+
+    // Sort according to the normalized hamming distance
+    keys.sort_by_key(|&(_, score)| score);
+
+    Ok(keys.iter().cloned().take(5).map(|(k, _)| k).collect())
 }
 
 #[test]
 fn find_key_length_works() {
-    assert_eq!(42, find_key_length("6.txt").unwrap());
+    assert_eq!(
+        vec![2, 10, 12, 14, 3],
+        find_key_lengths("6.txt").unwrap());
 }
 
 fn main() {
