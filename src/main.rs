@@ -253,17 +253,8 @@ fn hamming_distance_works() {
 }
 
 /// Return the five "best" key-length candidates (between 2 and 42) for the
-/// given file.
-fn find_key_lengths(filename: &str) -> std::io::Result<Vec<usize>> {
-    let f = try!(File::open(filename));
-    let mut file = BufReader::new(&f);
-
-    // XXX: the test file is small, so just read the whole thing into memory.
-    // Ideally we'd use BufReader's bytes() implementation, but that is an
-    // iterator over std::io::Result<u8> and not u8, and adapting is a pain.
-    let mut data = Vec::new();
-    file.read_to_end(&mut data).unwrap();
-
+/// given u8 slice.
+fn find_key_lengths(data: &[u8]) -> Vec<usize> {
     let mut keys: Vec<_> = (2..42).map(|keysize| {
         let mut chunks = data.chunks(keysize);
         let first = chunks.nth(0).unwrap().iter().cloned();
@@ -277,14 +268,27 @@ fn find_key_lengths(filename: &str) -> std::io::Result<Vec<usize>> {
     // Sort according to the normalized hamming distance
     keys.sort();
 
-    Ok(keys.iter().cloned().take(5).map(|(_, k)| k).collect())
+    keys.iter().cloned().take(5).map(|(_, k)| k).collect()
+}
+
+fn find_key_lengths_for_file(filename: &str) -> std::io::Result<Vec<usize>> {
+    let f = try!(File::open(filename));
+    let mut file = BufReader::new(&f);
+
+    // XXX: the test file is small, so just read the whole thing into memory.
+    // Ideally we'd use BufReader's bytes() implementation, but that is an
+    // iterator over std::io::Result<u8> and not u8, and adapting is a pain.
+    let mut data = Vec::new();
+    file.read_to_end(&mut data).unwrap();
+
+    Ok(find_key_lengths(&data))
 }
 
 #[test]
 fn find_key_length_works() {
     assert_eq!(
         vec![2, 10, 12, 14, 3],
-        find_key_lengths("6.txt").unwrap());
+        find_key_lengths_for_file("6.txt").unwrap());
 }
 
 fn main() {
