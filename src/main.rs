@@ -275,7 +275,6 @@ fn find_key_lengths(filename: &str) -> std::io::Result<Vec<usize>> {
     }).collect();
 
     // Sort according to the normalized hamming distance
-    //keys.sort_by_key(|&(_, score)| score);
     keys.sort();
 
     Ok(keys.iter().cloned().take(5).map(|(_, k)| k).collect())
